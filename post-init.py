@@ -11,7 +11,7 @@ def delete_stuff():
         zapi.script.delete(script["scriptid"])
     
     for mediatype in zapi.mediatype.get():
-        print("Deleting mediatype: {} ({})".format(mediatype["description"], mediatype["mediatypeid"]))
+        print("Deleting mediatype: {} ({})".format(mediatype["name"], mediatype["mediatypeid"]))
         zapi.mediatype.delete(mediatype["mediatypeid"])
     
     for host in zapi.host.get():
