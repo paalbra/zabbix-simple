@@ -6,6 +6,8 @@ import time
 import pyzabbix
 
 def delete_stuff():
+    global version
+
     for script in zapi.script.get():
         print("Deleting script: {} ({})".format(script["name"], script["scriptid"]))
         zapi.script.delete(script["scriptid"])
@@ -54,7 +56,9 @@ def delete_stuff():
             # Can't delete internal usergroups or only/last usergroup of user
             print("ERROR", str(e))
 
-def create_stuff(version, new_password):
+def create_stuff(new_password):
+    global version
+
     groupid = zapi.hostgroup.create(name="Hostgroup")["groupids"][0]
     zapi.host.create(host="Host", groups=[{"groupid": groupid}], interfaces=[{"type": 1, "main": 1, "useip": 1, "ip": "127.0.0.1", "dns": "", "port": 10050}])
     usergroupid = zapi.usergroup.create(name="Usergroup", rights=[{"permission": 3, "id": groupid}])["usrgrpids"][0]
@@ -62,7 +66,10 @@ def create_stuff(version, new_password):
         userid = zapi.user.create(alias="User", passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
     else:
         userid = zapi.user.create(alias="User", passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+
 def update_stuff(new_password):
+    global version
+
     userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
     zapi.user.update(userid=userid, passwd=new_password)
 
@@ -81,6 +88,8 @@ if __name__ == "__main__":
     if args.new_password is None:
         args.new_password = getpass.getpass("New password: ")
 
+    global version
+
     zapi = pyzabbix.ZabbixAPI(args.url)
     zapi.login(args.username, args.password)
     version_string = zapi.api_version()
@@ -88,5 +97,5 @@ if __name__ == "__main__":
     print("Connected to Zabbix API Version {}".format(version_string))
 
     delete_stuff()
-    create_stuff(version, args.new_password)
+    create_stuff(args.new_password)
     update_stuff(args.new_password)
