@@ -44,7 +44,10 @@ def delete_stuff():
         zapi.drule.delete(drule["druleid"])
     
     for user in zapi.user.get():
-        print("Deleting user: {} ({})".format(user["alias"], user["userid"]))
+        if version >= (5,4,0):
+            print("Deleting user: {} ({})".format(user["username"], user["userid"]))
+        else:
+            print("Deleting user: {} ({})".format(user["alias"], user["userid"]))
         try:
             zapi.user.delete(user["userid"])
         except pyzabbix.ZabbixAPIException as e:
@@ -78,7 +81,10 @@ def update_stuff(new_password):
     global version
 
     print("Updating user: Admin")
-    userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
+    if version >= (5,4,0):
+        userid = zapi.user.get(filter={"username": "Admin"})[0]["userid"]
+    else:
+        userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
     zapi.user.update(userid=userid, passwd=new_password)
 
 
