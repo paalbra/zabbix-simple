@@ -87,6 +87,14 @@ def update_stuff(new_password):
         userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
     zapi.user.update(userid=userid, passwd=new_password)
 
+    print("Updating user: guest")
+    usergroupid = zapi.usergroup.get(filter={"name": "Usergroup"})[0]["usrgrpid"]
+    if version >= (5,4,0):
+        userid = zapi.user.get(filter={"username": "guest"})[0]["userid"]
+    else:
+        userid = zapi.user.get(filter={"alias": "guest"})[0]["userid"]
+    zapi.user.update(userid=userid, usrgrps=[{"usrgrpid": usergroupid}])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
