@@ -45,6 +45,8 @@ TAG=latest ZABBIX_PASSWORD=something podman-compose up -d
 
 Run post-init. You may change the default password with the `--new-password` parameter.
 
+Beware that this might hang if ran very soon after the pod starts. Wait a bit longer.
+
 ```
 python3 post-init.py http://localhost:8080 Admin --password zabbix --new-password zabbix
 ```
