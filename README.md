@@ -57,7 +57,7 @@ http://localhost:8080 (you could use a Nginx proxy in front of this).
 
 There are three enabled users:
 
-* Admin: "Zabbix Super Admin". Password is the one set above
-* User: "Zabbix Admin". Password is the one set above
+* Admin: "Zabbix Super Admin". Password is the one set with post-init.py
+* User: "Zabbix Admin". Password is the one set with post-init.py
 * Guest: "Zabbix User". The normal guest user without password
 
