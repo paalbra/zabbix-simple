@@ -59,9 +59,13 @@ def delete_stuff():
 def create_stuff(new_password):
     global version
 
+    print("Creating hostgroup: Hostgroup")
     groupid = zapi.hostgroup.create(name="Hostgroup")["groupids"][0]
+    print("Creating host: Host")
     zapi.host.create(host="Host", groups=[{"groupid": groupid}], interfaces=[{"type": 1, "main": 1, "useip": 1, "ip": "127.0.0.1", "dns": "", "port": 10050}])
+    print("Creating usergroup: Usergroup")
     usergroupid = zapi.usergroup.create(name="Usergroup", rights=[{"permission": 3, "id": groupid}])["usrgrpids"][0]
+    print("Creating user: User")
     if version >= (5,2,0):
         userid = zapi.user.create(alias="User", passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
     else:
@@ -70,9 +74,9 @@ def create_stuff(new_password):
 def update_stuff(new_password):
     global version
 
+    print("Updating user: Admin")
     userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
     zapi.user.update(userid=userid, passwd=new_password)
-
 
 
 if __name__ == "__main__":
