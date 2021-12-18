@@ -60,4 +60,3 @@ There are three enabled users:
 * Admin: "Zabbix Super Admin". Password is the one set with post-init.py
 * User: "Zabbix Admin". Password is the one set with post-init.py
 * Guest: "Zabbix User". The normal guest user without password
-
