@@ -60,3 +60,18 @@ There are three enabled users:
 * Admin: "Zabbix Super Admin". Password is the one set with post-init.py
 * User: "Zabbix Admin". Password is the one set with post-init.py
 * Guest: "Zabbix User". The normal guest user without password
+
+## Run as systemd unit
+
+```
+adduser zabbix
+loginctl enable-linger zabbix
+su - zabbix
+git clone https://github.com/paalbra/zabbix-simple.git
+cd zabbix-simple
+TAG=latest ZABBIX_PASSWORD=secret podman-compose --project-name zabbix-simple up --no-start
+mkdir -p ~/.config/systemd/user
+cd ~/.config/systemd/user
+podman generate systemd --files --name zabbix-simple
+XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user enable --now pod-zabbix-simple.service
+```
