@@ -1,5 +1,13 @@
 version: "3.9"
+
+volumes:
+  mgmt:
+
 services:
+  mgmt:
+    build: "./mgmt"
+    volumes:
+      - "mgmt:/mgmt"
 
   db:
     image: "docker.io/library/postgres:latest"
@@ -26,9 +34,14 @@ services:
     image: "docker.io/zabbix/zabbix-server-pgsql:${TAG:?Need env: TAG}"
     depends_on:
       - "db"
+      - "mgmt"
     environment:
       - "DB_SERVER_HOST=db"
       - "POSTGRES_DB=zabbix"
       - "POSTGRES_PASSWORD=${ZABBIX_PASSWORD:?Need env: ZABBIX_PASSWORD}"
       - "POSTGRES_USER=zabbix"
-
+      - "ZBX_TLSCAFILE=/mgmt/ca/ca.cert.pem"
+      - "ZBX_TLSCERTFILE=/mgmt/ca/ca.cert.pem"
+      - "ZBX_TLSKEYFILE=/mgmt/ca/ca.key.pem"
+    volumes:
+      - "mgmt:/mgmt:ro"
