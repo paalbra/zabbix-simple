@@ -1,8 +1,8 @@
 # zabbix-simple
 
-This is meant to be a quick and simple setup of [zabbix](https://zabbix.com) v5.0 that can be used for testing purposes.
+This is meant to be a quick and simple setup of [zabbix](https://zabbix.com) that can be used for testing purposes. It should at least support the specific tags/version mentioned below.
 
-It's assumed that you run it on a Ubuntu 20.10 or CentOS 8 server.
+It's assumed that you run it on a Ubuntu 20.10 or CentOS 8 server, but can problably be used on similar distros.
 
 ## Prerequirements
 
@@ -18,6 +18,7 @@ pip3 install --user podman-compose pyzabbix
 ```
 
 ### CentOS
+
 ```
 sudo dnf install -y podman
 pip3 install --user podman-compose pyzabbix
