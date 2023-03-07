@@ -34,6 +34,11 @@ def delete_stuff():
         except pyzabbix.ZabbixAPIException as e:
             # Some hostgroups are internal and can't be deleted
             print("ERROR", str(e))
+
+    if version >= (6,2,0):
+        for templategroup in zapi.templategroup.get():
+            print("Deleting templategroup: {} ({})".format(templategroup["name"], templategroup["groupid"]))
+            zapi.templategroup.delete(templategroup["groupid"])
     
     for action in zapi.action.get():
         print("Deleting action: {} ({})".format(action["name"], action["actionid"]))
@@ -66,9 +71,14 @@ def create_stuff():
     global version
 
     print("Creating hostgroup: Hostgroup")
-    groupid = zapi.hostgroup.create(name="Hostgroup")["groupids"][0]
+    hostgroupid = zapi.hostgroup.create(name="Hostgroup")["groupids"][0]
+
+    if version >= (6,2,0):
+        print("Creating templategroup: Templategroup")
+        templategroupid = zapi.templategroup.create(name="Templategroup")["groupids"][0]
+
     print("Creating host: Host")
-    zapi.host.create(host="Host", groups=[{"groupid": groupid}], interfaces=[{"type": 1, "main": 1, "useip": 1, "ip": "127.0.0.1", "dns": "", "port": 10050}])
+    zapi.host.create(host="Host", groups=[{"groupid": hostgroupid}], interfaces=[{"type": 1, "main": 1, "useip": 1, "ip": "127.0.0.1", "dns": "", "port": 10050}])
 
 def update_settings():
     global version
