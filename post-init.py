@@ -62,20 +62,13 @@ def delete_stuff():
             # Can't delete internal usergroups or only/last usergroup of user
             print("ERROR", str(e))
 
-def create_stuff(new_password):
+def create_stuff():
     global version
 
     print("Creating hostgroup: Hostgroup")
     groupid = zapi.hostgroup.create(name="Hostgroup")["groupids"][0]
     print("Creating host: Host")
     zapi.host.create(host="Host", groups=[{"groupid": groupid}], interfaces=[{"type": 1, "main": 1, "useip": 1, "ip": "127.0.0.1", "dns": "", "port": 10050}])
-    print("Creating usergroup: Usergroup")
-    usergroupid = zapi.usergroup.create(name="Usergroup", rights=[{"permission": 3, "id": groupid}])["usrgrpids"][0]
-    print("Creating user: User")
-    if version >= (5,2,0):
-        userid = zapi.user.create(alias="User", passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
-    else:
-        userid = zapi.user.create(alias="User", passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
 
 def update_settings():
     global version
@@ -84,8 +77,39 @@ def update_settings():
         print("Updating password policy")
         zapi.authentication.update(passwd_min_length=1, passwd_check_rules=0)
 
-def update_stuff(new_password):
+def update_users(new_password):
     global version
+
+    # Create read/write rights for all host groups
+    hostgroup_rights = [{"permission": 3, "id": hostgroup["groupid"]} for hostgroup in zapi.hostgroup.get()]
+
+    usergroup = zapi.usergroup.get(filter={"name": "Usergroup"})
+    if not usergroup:
+        print("Creating usergroup: Usergroup")
+        usergroupid = zapi.usergroup.create(name="Usergroup", rights=hostgroup_rights)["usrgrpids"][0]
+    else:
+        print("Updating usergroup: Usergroup")
+        usergroupid = usergroup[0]["usrgrpid"]
+        zapi.usergroup.update(usrgrpid=usergroupid, rights=hostgroup_rights)
+
+    if version >= (5,4,0):
+        user = zapi.user.get(filter={"username": "User"})
+    else:
+        user = zapi.user.get(filter={"alias": "User"})
+    if not user:
+        print("Creating user: User")
+        if version >= (5,2,0):
+            userid = zapi.user.create(alias="User", passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+        else:
+            userid = zapi.user.create(alias="User", passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+    else:
+        print("Updating user: User")
+        userid = user[0]["userid"]
+        if version >= (5,2,0):
+            userid = zapi.user.update(userid=userid, passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+        else:
+            userid = zapi.user.update(userid=userid, passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+
 
     print("Updating user: Admin")
     if version >= (5,4,0):
@@ -95,7 +119,6 @@ def update_stuff(new_password):
     zapi.user.update(userid=userid, passwd=new_password)
 
     print("Updating user: guest")
-    usergroupid = zapi.usergroup.get(filter={"name": "Usergroup"})[0]["usrgrpid"]
     if version >= (5,4,0):
         userid = zapi.user.get(filter={"username": "guest"})[0]["userid"]
     else:
@@ -125,6 +148,6 @@ if __name__ == "__main__":
     print("Connected to Zabbix API Version {}".format(version_string))
 
     update_settings()
+    update_users(args.new_password)
     delete_stuff()
-    create_stuff(args.new_password)
-    update_stuff(args.new_password)
+    create_stuff()
