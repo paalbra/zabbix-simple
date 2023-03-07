@@ -158,6 +158,6 @@ if __name__ == "__main__":
     print("Connected to Zabbix API Version {}".format(version_string))
 
     update_settings()
-    update_users(args.new_password)
     delete_stuff()
     create_stuff()
+    update_users(args.new_password)
