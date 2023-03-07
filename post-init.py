@@ -77,6 +77,13 @@ def create_stuff(new_password):
     else:
         userid = zapi.user.create(alias="User", passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
 
+def update_settings():
+    global version
+
+    if version >= (6,0,0):
+        print("Updating password policy")
+        zapi.authentication.update(passwd_min_length=1, passwd_check_rules=0)
+
 def update_stuff(new_password):
     global version
 
@@ -117,6 +124,7 @@ if __name__ == "__main__":
     version = tuple(map(int, version_string.split(".")))
     print("Connected to Zabbix API Version {}".format(version_string))
 
+    update_settings()
     delete_stuff()
     create_stuff(args.new_password)
     update_stuff(args.new_password)
