@@ -67,6 +67,56 @@ def delete_stuff():
             # Can't delete internal usergroups or only/last usergroup of user
             print("ERROR", str(e))
 
+def configure_ldap():
+    import ldap
+
+    ldap_host = "localhost"
+    ldap_port = 10389
+    ldap_base_dn = "ou=people,dc=planetexpress,dc=com"
+    ldap_search_attribute = "uid"
+    ldap_bind_dn = "cn=admin,dc=planetexpress,dc=com"
+    ldap_bind_password = "GoodNewsEveryone"
+
+    if version >= (5,2,0):
+        print("Configuring LDAP")
+        zapi.authentication.update(ldap_configured=1,
+                                   ldap_host="ldap",  # It's container hostname is "ldap"
+                                   ldap_port=ldap_port,
+                                   ldap_base_dn=ldap_base_dn,
+                                   ldap_search_attribute=ldap_search_attribute,
+                                   ldap_bind_dn=ldap_bind_dn,
+                                   ldap_case_sensitive=1,
+                                   ldap_bind_password=ldap_bind_password)
+
+        # Create read/write rights for all host groups
+        hostgroup_rights = [{"permission": 3, "id": hostgroup["groupid"]} for hostgroup in zapi.hostgroup.get()]
+
+        usergroup = zapi.usergroup.get(filter={"name": "LDAP-users"})
+        if not usergroup:
+            print("Creating usergroup: LDAP-users")
+            usergroupid = zapi.usergroup.create(name="LDAP-users", gui_access=2, rights=hostgroup_rights)["usrgrpids"][0]
+        else:
+            print("Updating usergroup: Usergroup")
+            usergroupid = usergroup[0]["usrgrpid"]
+            zapi.usergroup.update(usrgrpid=usergroupid, gui_access=2, rights=hostgroup_rights)
+
+        conn = ldap.initialize(f"ldap://{ldap_host}:{ldap_port}")
+        conn.simple_bind_s(ldap_bind_dn, ldap_bind_password)
+
+        for dn, attrs in conn.search_s("ou=people,dc=planetexpress,dc=com", ldap.SCOPE_ONELEVEL, f"{ldap_search_attribute}=*", [ldap_search_attribute]):
+            username = attrs["uid"][0].decode("ascii")
+            if version >= (5,4,0):
+                user = zapi.user.get(filter={"username": username})
+            else:
+                user = zapi.user.get(filter={"alias": username})
+            if not user:
+                print("Creating user: {}".format(username))
+                userid = zapi.user.create(alias=username, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+            else:
+                print("Updating user: {}".foarmat(username))
+                userid = user[0]["userid"]
+                userid = zapi.user.update(userid=userid, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+
 def create_stuff():
     global version
 
@@ -161,3 +211,4 @@ if __name__ == "__main__":
     delete_stuff()
     create_stuff()
     update_users(args.new_password)
+    configure_ldap()

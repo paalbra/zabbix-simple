@@ -32,3 +32,7 @@ services:
       - "POSTGRES_PASSWORD=${ZABBIX_PASSWORD:?Need env: ZABBIX_PASSWORD}"
       - "POSTGRES_USER=zabbix"
 
+  ldap:
+    image: "docker.io/rroemhild/test-openldap"
+    ports:
+      - "10389:10389"
