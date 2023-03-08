@@ -153,15 +153,16 @@ def update_users(new_password):
         zapi.usergroup.update(usrgrpid=usergroupid, rights=hostgroup_rights)
 
     if version >= (5,4,0):
-        user = zapi.user.get(filter={"username": "User"})
+        username_property = "username"
     else:
-        user = zapi.user.get(filter={"alias": "User"})
+        username_property = "alias"
+    user = zapi.user.get(filter={username_property: "User"})
     if not user:
         print("Creating user: User")
         if version >= (5,2,0):
-            userid = zapi.user.create(alias="User", passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+            userid = zapi.user.create(passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}], **{username_property: "User"})["userids"][0]
         else:
-            userid = zapi.user.create(alias="User", passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+            userid = zapi.user.create(passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}], **{username_property: "User"})["userids"][0]
     else:
         print("Updating user: User")
         userid = user[0]["userid"]
