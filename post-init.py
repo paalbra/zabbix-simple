@@ -1,84 +1,73 @@
 #!/usr/bin/python3
 import argparse
 import getpass
-import time
-
+import logging
 import pyzabbix
+
 
 def delete_stuff():
     global version
-
     for script in zapi.script.get():
-        print("Deleting script: {} ({})".format(script["name"], script["scriptid"]))
+        logging.info("Deleting script: %s (%d)", script["name"], int(script["scriptid"]))
         zapi.script.delete(script["scriptid"])
-    
     for mediatype in zapi.mediatype.get():
-        if version >= (4,4,0):
-            print("Deleting mediatype: {} ({})".format(mediatype["name"], mediatype["mediatypeid"]))
+        if version >= (4, 4, 0):
+            logging.info("Deleting mediatype: %s (%d)", mediatype["name"], int(mediatype["mediatypeid"]))
         else:
-            print("Deleting mediatype: {} ({})".format(mediatype["description"], mediatype["mediatypeid"]))
+            logging.info("Deleting mediatype: %s (%d)", mediatype["description"], int(mediatype["mediatypeid"]))
         zapi.mediatype.delete(mediatype["mediatypeid"])
-    
     for host in zapi.host.get():
-        print("Deleting host: {} ({})".format(host["host"], host["hostid"]))
+        logging.info("Deleting host: %s (%d)", host["host"], int(host["hostid"]))
         zapi.host.delete(host["hostid"])
-    
     for template in zapi.template.get():
-        print("Deleting template: {} ({})".format(template["host"], template["templateid"]))
+        logging.info("Deleting template: %s (%d)", template["host"], int(template["templateid"]))
         zapi.template.delete(template["templateid"])
-    
     for hostgroup in zapi.hostgroup.get():
-        print("Deleting hostgroup: {} ({})".format(hostgroup["name"], hostgroup["groupid"]))
+        logging.info("Deleting hostgroup: %s (%d)", hostgroup["name"], int(hostgroup["groupid"]))
         try:
             zapi.hostgroup.delete(hostgroup["groupid"])
         except pyzabbix.ZabbixAPIException as e:
             # Some hostgroups are internal and can't be deleted
-            print("ERROR", str(e))
-
-    if version >= (6,2,0):
+            logging.error("ERROR: %s", str(e))
+    if version >= (6, 2, 0):
         for templategroup in zapi.templategroup.get():
-            print("Deleting templategroup: {} ({})".format(templategroup["name"], templategroup["groupid"]))
+            logging.info("Deleting templategroup: %s (%d)", templategroup["name"], int(templategroup["groupid"]))
             zapi.templategroup.delete(templategroup["groupid"])
-    
     for action in zapi.action.get():
-        print("Deleting action: {} ({})".format(action["name"], action["actionid"]))
+        logging.info("Deleting action: %s (%d)", action["name"], int(action["actionid"]))
         zapi.action.delete(action["actionid"])
-    
     for drule in zapi.drule.get():
-        print("Deleting drule: {} ({})".format(drule["name"], drule["druleid"]))
+        logging.info("Deleting drule: %s (%d)", drule["name"], int(drule["druleid"]))
         zapi.drule.delete(drule["druleid"])
-    
     for user in zapi.user.get():
-        if version >= (5,4,0):
-            print("Deleting user: {} ({})".format(user["username"], user["userid"]))
+        if version >= (5, 4, 0):
+            logging.info("Deleting user: %s (%d)", user["username"], int(user["userid"]))
         else:
-            print("Deleting user: {} ({})".format(user["alias"], user["userid"]))
+            logging.info("Deleting user: %s (%d)", user["alias"], int(user["userid"]))
         try:
             zapi.user.delete(user["userid"])
         except pyzabbix.ZabbixAPIException as e:
             # Can't delete self or internal users
-            print("ERROR", str(e))
-    
+            logging.error("ERROR: %s", str(e))
     for usergroup in zapi.usergroup.get():
-        print("Deleting usergroup: {} ({})".format(usergroup["name"], usergroup["usrgrpid"]))
+        logging.info("Deleting usergroup: %s (%d)", usergroup["name"], int(usergroup["usrgrpid"]))
         try:
             zapi.usergroup.delete(usergroup["usrgrpid"])
         except pyzabbix.ZabbixAPIException as e:
             # Can't delete internal usergroups or only/last usergroup of user
-            print("ERROR", str(e))
+            logging.error("ERROR: %s", str(e))
+
 
 def configure_ldap():
     import ldap
-
     ldap_host = "localhost"
     ldap_port = 10389
     ldap_base_dn = "ou=people,dc=planetexpress,dc=com"
     ldap_search_attribute = "uid"
     ldap_bind_dn = "cn=admin,dc=planetexpress,dc=com"
     ldap_bind_password = "GoodNewsEveryone"
-
-    if version >= (5,2,0):
-        print("Configuring LDAP")
+    if version >= (5, 2, 0):
+        logging.info("Configuring LDAP")
         zapi.authentication.update(ldap_configured=1,
                                    ldap_host="ldap",  # It's container hostname is "ldap"
                                    ldap_port=ldap_port,
@@ -87,100 +76,89 @@ def configure_ldap():
                                    ldap_bind_dn=ldap_bind_dn,
                                    ldap_case_sensitive=1,
                                    ldap_bind_password=ldap_bind_password)
-
         # Create read/write rights for all host groups
         hostgroup_rights = [{"permission": 3, "id": hostgroup["groupid"]} for hostgroup in zapi.hostgroup.get()]
-
         usergroup = zapi.usergroup.get(filter={"name": "LDAP-users"})
         if not usergroup:
-            print("Creating usergroup: LDAP-users")
+            logging.info("Creating usergroup: LDAP-users")
             usergroupid = zapi.usergroup.create(name="LDAP-users", gui_access=2, rights=hostgroup_rights)["usrgrpids"][0]
         else:
-            print("Updating usergroup: Usergroup")
+            logging.info("Updating usergroup: Usergroup")
             usergroupid = usergroup[0]["usrgrpid"]
             zapi.usergroup.update(usrgrpid=usergroupid, gui_access=2, rights=hostgroup_rights)
-
         conn = ldap.initialize(f"ldap://{ldap_host}:{ldap_port}")
         conn.simple_bind_s(ldap_bind_dn, ldap_bind_password)
-
         for dn, attrs in conn.search_s("ou=people,dc=planetexpress,dc=com", ldap.SCOPE_ONELEVEL, f"{ldap_search_attribute}=*", [ldap_search_attribute]):
             username = attrs["uid"][0].decode("ascii")
-            if version >= (5,4,0):
+            if version >= (5, 4, 0):
                 user = zapi.user.get(filter={"username": username})
             else:
                 user = zapi.user.get(filter={"alias": username})
             if not user:
-                print("Creating user: {}".format(username))
+                logging.info("Creating user: %s", username)
                 userid = zapi.user.create(alias=username, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
             else:
-                print("Updating user: {}".foarmat(username))
+                logging.info("Updating user: %s", username)
                 userid = user[0]["userid"]
                 userid = zapi.user.update(userid=userid, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
 
+
 def create_stuff():
     global version
-
-    print("Creating hostgroup: Hostgroup")
+    logging.info("Creating hostgroup: Hostgroup")
     hostgroupid = zapi.hostgroup.create(name="Hostgroup")["groupids"][0]
-
-    if version >= (6,2,0):
-        print("Creating templategroup: Templategroup")
-        templategroupid = zapi.templategroup.create(name="Templategroup")["groupids"][0]
-
-    print("Creating host: Host")
+    if version >= (6, 2, 0):
+        logging.info("Creating templategroup: Templategroup")
+        zapi.templategroup.create(name="Templategroup")["groupids"][0]
+    logging.info("Creating host: Host")
     zapi.host.create(host="Host", groups=[{"groupid": hostgroupid}], interfaces=[{"type": 1, "main": 1, "useip": 1, "ip": "127.0.0.1", "dns": "", "port": 10050}])
+
 
 def update_settings():
     global version
-
-    if version >= (6,0,0):
-        print("Updating password policy")
+    if version >= (6, 0, 0):
+        logging.info("Updating password policy")
         zapi.authentication.update(passwd_min_length=1, passwd_check_rules=0)
+
 
 def update_users(new_password):
     global version
-
     # Create read/write rights for all host groups
     hostgroup_rights = [{"permission": 3, "id": hostgroup["groupid"]} for hostgroup in zapi.hostgroup.get()]
-
     usergroup = zapi.usergroup.get(filter={"name": "Usergroup"})
     if not usergroup:
-        print("Creating usergroup: Usergroup")
+        logging.info("Creating usergroup: Usergroup")
         usergroupid = zapi.usergroup.create(name="Usergroup", rights=hostgroup_rights)["usrgrpids"][0]
     else:
-        print("Updating usergroup: Usergroup")
+        logging.info("Updating usergroup: Usergroup")
         usergroupid = usergroup[0]["usrgrpid"]
         zapi.usergroup.update(usrgrpid=usergroupid, rights=hostgroup_rights)
-
-    if version >= (5,4,0):
+    if version >= (5, 4, 0):
         username_property = "username"
     else:
         username_property = "alias"
     user = zapi.user.get(filter={username_property: "User"})
     if not user:
-        print("Creating user: User")
-        if version >= (5,2,0):
+        logging.info("Creating user: User")
+        if version >= (5, 2, 0):
             userid = zapi.user.create(passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}], **{username_property: "User"})["userids"][0]
         else:
             userid = zapi.user.create(passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}], **{username_property: "User"})["userids"][0]
     else:
-        print("Updating user: User")
+        logging.info("Updating user: User")
         userid = user[0]["userid"]
-        if version >= (5,2,0):
+        if version >= (5, 2, 0):
             userid = zapi.user.update(userid=userid, passwd=new_password, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
         else:
             userid = zapi.user.update(userid=userid, passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
-
-
-    print("Updating user: Admin")
-    if version >= (5,4,0):
+    logging.info("Updating user: Admin")
+    if version >= (5, 4, 0):
         userid = zapi.user.get(filter={"username": "Admin"})[0]["userid"]
     else:
         userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
     zapi.user.update(userid=userid, passwd=new_password)
-
-    print("Updating user: guest")
-    if version >= (5,4,0):
+    logging.info("Updating user: guest")
+    if version >= (5, 4, 0):
         userid = zapi.user.get(filter={"username": "guest"})[0]["userid"]
     else:
         userid = zapi.user.get(filter={"alias": "guest"})[0]["userid"]
@@ -193,21 +171,19 @@ if __name__ == "__main__":
     parser.add_argument("username")
     parser.add_argument("--password")
     parser.add_argument("--new-password")
+    parser.add_argument("-q", "--quiet", action="store_const", default=logging.INFO, const=logging.WARNING, dest="loglevel")
     args = parser.parse_args()
-
     if args.password is None:
         args.password = getpass.getpass("Current password: ")
     if args.new_password is None:
         args.new_password = getpass.getpass("New password: ")
-
+    logging.basicConfig(level=args.loglevel, format="%(levelname)s: %(message)s")
     global version
-
     zapi = pyzabbix.ZabbixAPI(args.url)
     zapi.login(args.username, args.password)
     version_string = zapi.api_version()
     version = tuple(map(int, version_string.split(".")))
-    print("Connected to Zabbix API Version {}".format(version_string))
-
+    logging.info("Connected to Zabbix API Version %s", version_string)
     update_settings()
     delete_stuff()
     create_stuff()
