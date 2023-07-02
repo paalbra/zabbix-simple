@@ -11,7 +11,7 @@ We're going to use [podman](https://podman.io/getting-started/) **or** [kubernet
 ### Podman on Ubuntu
 
 ```
-sudo apt install -y python3-pip podman
+sudo apt install -y podman python3-pip
 # Depending on the package you might be missing a dependency. Install runc
 sudo apt install runc
 pip3 install --user pyzabbix
@@ -20,7 +20,7 @@ pip3 install --user pyzabbix
 ### Podman on CentOS
 
 ```
-sudo dnf install -y podman
+sudo dnf install -y podman python3-pip
 pip3 install --user pyzabbix
 ```
 
