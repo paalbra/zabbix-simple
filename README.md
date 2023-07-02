@@ -2,7 +2,7 @@
 
 This is meant to be a quick and simple setup of [zabbix](https://zabbix.com) that can be used for testing purposes. It should at least support the specific tags/version mentioned below.
 
-It's assumed that you run it on a Ubuntu 20.10 or CentOS 8 server, but can problably be used on similar distros.
+It's assumed that you run it on a Ubuntu 23.04 or Fedora 38, but can problably be used on similar distros.
 
 ## Prerequirements
 
@@ -11,16 +11,16 @@ We're going to use [podman](https://podman.io/getting-started/) **or** [kubernet
 ### Podman on Ubuntu
 
 ```
-sudo apt install -y podman python3-pip
+sudo apt install -y podman python3-ldap python3-pip
 # Depending on the package you might be missing a dependency. Install runc
 sudo apt install runc
 pip3 install --user pyzabbix
 ```
 
-### Podman on CentOS
+### Podman on Fedora
 
 ```
-sudo dnf install -y podman python3-pip
+sudo dnf install -y podman python3-ldap python3-pip
 pip3 install --user pyzabbix
 ```
 
