@@ -6,23 +6,27 @@ It's assumed that you run it on a Ubuntu 20.10 or CentOS 8 server, but can probl
 
 ## Prerequirements
 
-We're going to use [podman](https://podman.io/getting-started/) and [podman-compose](https://github.com/containers/podman-compose).
+We're going to use [podman](https://podman.io/getting-started/) **or** [kubernetes](https://kubernetes.io/) (kubectl).
 
-### Ubuntu
+### Podman on Ubuntu
 
 ```
 sudo apt install -y python3-pip podman
 # Depending on the package you might be missing a dependency. Install runc
 sudo apt install runc
-pip3 install --user podman-compose pyzabbix
+pip3 install --user pyzabbix
 ```
 
-### CentOS
+### Podman on CentOS
 
 ```
 sudo dnf install -y podman
-pip3 install --user podman-compose pyzabbix
+pip3 install --user pyzabbix
 ```
+
+### Kubernetes (kubectl)
+
+Configuring this is out of scope for this repo. Use podman if you want a simple example.
 
 ## Create zabbix/create pod
 
@@ -42,8 +46,15 @@ The `TAG` environment variable should be set to the image tag you wish to run. E
 
 View available images at <https://hub.docker.com/u/zabbix>.
 
+**Podman**:
 ```
-TAG=latest ZABBIX_PASSWORD=something podman-compose up -d
+TAG=latest ZABBIX_PASSWORD=something envsubst < kubefile.yml | podman kube play -
+```
+
+**Kubectl**:
+```
+TAG=latest ZABBIX_PASSWORD=something envsubst < kubefile.yml | kubectl apply -f -
+kubectl port-forward pod/zabbix-simple 8080:8080 10389:10389
 ```
 
 Run post-init. You may change the default password with the `--new-password` parameter.
@@ -58,23 +69,10 @@ python3 post-init.py http://localhost:8080 Admin --password zabbix --new-passwor
 
 http://localhost:8080 (you could use a Nginx proxy in front of this).
 
-There are three enabled users:
+There are three enabled users by post-init:
 
 * Admin: "Zabbix Super Admin". Password is the one set with post-init.py
 * User: "Zabbix Admin". Password is the one set with post-init.py
 * Guest: "Zabbix User". The normal guest user without password
 
-## Run as systemd unit
-
-```
-adduser zabbix
-loginctl enable-linger zabbix
-su - zabbix
-git clone https://github.com/paalbra/zabbix-simple.git
-cd zabbix-simple
-TAG=latest ZABBIX_PASSWORD=secret podman-compose --project-name zabbix-simple up --no-start
-mkdir -p ~/.config/systemd/user
-cd ~/.config/systemd/user
-podman generate systemd --files --name zabbix-simple
-XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user enable --now pod-zabbix-simple.service
-```
+LDAP is also configured and uses the users provided in the [docker-test-openldap](https://github.com/rroemhild/docker-test-openldap).

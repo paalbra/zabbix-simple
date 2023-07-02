@@ -81,7 +81,7 @@ def configure_ldap():
     if version >= (5, 2, 0):
         logging.info("Configuring LDAP")
         zapi.authentication.update(ldap_configured=1,
-                                   ldap_host="ldap",  # It's container hostname is "ldap"
+                                   ldap_host="localhost",
                                    ldap_port=ldap_port,
                                    ldap_base_dn=ldap_base_dn,
                                    ldap_search_attribute=ldap_search_attribute,
