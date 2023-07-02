@@ -201,6 +201,7 @@ if __name__ == "__main__":
     parser.add_argument("username")
     parser.add_argument("--password")
     parser.add_argument("--new-password")
+    parser.add_argument("--no-ldap", action="store_true")
     parser.add_argument("-q", "--quiet", action="store_const", default=logging.INFO, const=logging.WARNING, dest="loglevel")
     args = parser.parse_args()
 
@@ -225,4 +226,5 @@ if __name__ == "__main__":
     delete_stuff()
     create_stuff()
     update_users(args.new_password)
-    configure_ldap()
+    if not args.no_ldap:
+        configure_ldap()

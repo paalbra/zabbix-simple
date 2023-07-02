@@ -35,7 +35,7 @@ The `ZABBIX_PASSWORD` environment variable will be the password for the database
 The `TAG` environment variable should be set to the image tag you wish to run. E.g:
 
 - `latest`
-- `alpine-6.2-latest`
+- `alpine-6.2-latest` (LDAP can't be configured through the API. `post-init.py` must be run with `--no-ldap`)
 - `alpine-6.0-latest`
 - `alpine-5.4-latest`
 - `alpine-5.0-latest`
