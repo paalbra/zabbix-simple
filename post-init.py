@@ -180,10 +180,7 @@ def update_users(current_password, new_password):
 
     current_username = zapi.check_authentication()["username"]
     logging.info("Updating user: %s", current_username)
-    if version >= (5, 4, 0):
-        userid = zapi.user.get(filter={"username": current_username})[0]["userid"]
-    else:
-        userid = zapi.user.get(filter={"alias": current_username})[0]["userid"]
+    userid = zapi.user.get(filter={username_property: current_username})[0]["userid"]
 
     if version >= (6, 4, 0):
         zapi.user.update(userid=userid, passwd=new_password, current_passwd=current_password)
@@ -193,10 +190,8 @@ def update_users(current_password, new_password):
 
     logging.info("Updating user: guest")
 
-    if version >= (5, 4, 0):
-        userid = zapi.user.get(filter={"username": "guest"})[0]["userid"]
-    else:
-        userid = zapi.user.get(filter={"alias": "guest"})[0]["userid"]
+
+    userid = zapi.user.get(filter={username_property: "guest"})[0]["userid"]
 
     zapi.user.update(userid=userid, usrgrps=[{"usrgrpid": usergroupid}])
 
