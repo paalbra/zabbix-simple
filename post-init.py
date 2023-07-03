@@ -141,7 +141,7 @@ def update_settings():
         zapi.authentication.update(passwd_min_length=1, passwd_check_rules=0)
 
 
-def update_users(new_password):
+def update_users(current_password, new_password):
     global version
 
     # Create read/write rights for all host groups
@@ -178,13 +178,19 @@ def update_users(new_password):
         else:
             userid = zapi.user.update(userid=userid, passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
 
-    logging.info("Updating user: Admin")
+    current_username = zapi.check_authentication()["username"]
+    logging.info("Updating user: %s", current_username)
     if version >= (5, 4, 0):
-        userid = zapi.user.get(filter={"username": "Admin"})[0]["userid"]
+        userid = zapi.user.get(filter={"username": current_username})[0]["userid"]
     else:
-        userid = zapi.user.get(filter={"alias": "Admin"})[0]["userid"]
+        userid = zapi.user.get(filter={"alias": current_username})[0]["userid"]
 
-    zapi.user.update(userid=userid, passwd=new_password)
+    if version >= (6, 4, 0):
+        zapi.user.update(userid=userid, passwd=new_password, current_passwd=current_password)
+        zapi.login(current_username, new_password)
+    else:
+        zapi.user.update(userid=userid, passwd=new_password)
+
     logging.info("Updating user: guest")
 
     if version >= (5, 4, 0):
@@ -225,6 +231,6 @@ if __name__ == "__main__":
     update_settings()
     delete_stuff()
     create_stuff()
-    update_users(args.new_password)
+    update_users(args.password, args.new_password)
     if not args.no_ldap:
         configure_ldap()
