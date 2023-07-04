@@ -8,6 +8,11 @@ import pyzabbix
 def delete_stuff():
     global version
 
+    if version >= (5, 4, 0):
+        username_property = "username"
+    else:
+        username_property = "alias"
+
     for script in zapi.script.get():
         logging.info("Deleting script: %s (%d)", script["name"], int(script["scriptid"]))
         zapi.script.delete(script["scriptid"])
@@ -49,10 +54,7 @@ def delete_stuff():
         zapi.drule.delete(drule["druleid"])
 
     for user in zapi.user.get():
-        if version >= (5, 4, 0):
-            logging.info("Deleting user: %s (%d)", user["username"], int(user["userid"]))
-        else:
-            logging.info("Deleting user: %s (%d)", user["alias"], int(user["userid"]))
+        logging.info("Deleting user: %s (%d)", user[username_property], int(user["userid"]))
         try:
             zapi.user.delete(user["userid"])
         except pyzabbix.ZabbixAPIException as e:
@@ -77,6 +79,11 @@ def configure_ldap():
     ldap_search_attribute = "uid"
     ldap_bind_dn = "cn=admin,dc=planetexpress,dc=com"
     ldap_bind_password = "GoodNewsEveryone"
+
+    if version >= (5, 4, 0):
+        username_property = "username"
+    else:
+        username_property = "alias"
 
     if version >= (5, 2, 0):
         logging.info("Configuring LDAP")
@@ -105,14 +112,11 @@ def configure_ldap():
         for dn, attrs in conn.search_s("ou=people,dc=planetexpress,dc=com", ldap.SCOPE_ONELEVEL, f"{ldap_search_attribute}=*", [ldap_search_attribute]):
             username = attrs["uid"][0].decode("ascii")
 
-            if version >= (5, 4, 0):
-                user = zapi.user.get(filter={"username": username})
-            else:
-                user = zapi.user.get(filter={"alias": username})
+            user = zapi.user.get(filter={username_property: username})
 
             if not user:
                 logging.info("Creating user: %s", username)
-                userid = zapi.user.create(alias=username, roleid=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
+                userid = zapi.user.create(roleid=2, usrgrps=[{"usrgrpid": usergroupid}], **{username_property: username})["userids"][0]
             else:
                 logging.info("Updating user: %s", username)
                 userid = user[0]["userid"]
@@ -178,7 +182,7 @@ def update_users(current_password, new_password):
         else:
             userid = zapi.user.update(userid=userid, passwd=new_password, type=2, usrgrps=[{"usrgrpid": usergroupid}])["userids"][0]
 
-    current_username = zapi.check_authentication()["username"]
+    current_username = zapi.check_authentication()[username_property]
     logging.info("Updating user: %s", current_username)
     userid = zapi.user.get(filter={username_property: current_username})[0]["userid"]
 
