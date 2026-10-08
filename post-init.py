@@ -17,6 +17,10 @@ def delete_stuff():
         logging.info("Deleting script: %s (%d)", script["name"], int(script["scriptid"]))
         zapi.script.delete(script["scriptid"])
 
+    for action in zapi.action.get():
+        logging.info("Deleting action: %s (%d)", action["name"], int(action["actionid"]))
+        zapi.action.delete(action["actionid"])
+
     for mediatype in zapi.mediatype.get():
         if version >= (4, 4, 0):
             logging.info("Deleting mediatype: %s (%d)", mediatype["name"], int(mediatype["mediatypeid"]))
